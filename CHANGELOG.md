@@ -7,6 +7,16 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While on `0.x` the public API may still change between minor versions; the first
 frozen API ships as `1.0.0`.
 
+## [0.1.1] — 2026-06-18
+
+Patch release. Coordinate: `com.othento:othento-core:0.1.1`.
+
+### Fixed
+- **OTP input overflow on narrow screens** — long verification codes (8–10
+  cells) no longer run off the screen edge. Cell size, spacing, and digit
+  text now shrink uniformly to fit the available width, capped at the spec
+  size so shorter codes (4–6) stay full-size.
+  
 ## [0.1.0] — 2026-06-14
 
 First published release. Coordinate: `com.othento:othento-core:0.1.0`.

@@ -8,7 +8,7 @@ verification, and hands you a typed decision (`Approved` / `Declined` /
 `InReview`) through a listener. The API surface mirrors the web SDK 1:1, so
 error codes, session statuses, and analytics events line up across platforms.
 
-- **Coordinate:** `com.othento:othento-core:0.1.0`
+- **Coordinate:** `com.othento:othento-core:0.1.1`
 - **Min SDK:** 24 · **compile/target:** 34 · **Kotlin:** 2.0+
 - **UI:** renders with Jetpack Compose internally — your app does **not** need Compose.
 
@@ -99,7 +99,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.othento:othento-core:0.1.0")
+    implementation("com.othento:othento-core:0.1.1")
 }
 ```
 
@@ -336,7 +336,7 @@ production. Pre-`1.0.0` versions may be re-published on the GitHub repo.
 
 ## Support
 
-Include the SDK version (`0.1.0`), the `externalId` of the affected session, and
+Include the SDK version (`0.1.1`), the `externalId` of the affected session, and
 a logcat capture (enable `loggingEnabled(true)` while reproducing) when
 contacting your account manager or opening a ticket.
 
