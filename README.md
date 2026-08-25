@@ -8,7 +8,7 @@ verification, and hands you a typed decision (`Approved` / `Declined` /
 `InReview`) through a listener. The API surface mirrors the web SDK 1:1, so
 error codes, session statuses, and analytics events line up across platforms.
 
-- **Coordinate:** `com.othento:othento-core:0.1.1`
+- **Coordinate:** `com.othento:othento-core:0.1.2`
 - **Min SDK:** 24 · **compile/target:** 34 · **Kotlin:** 2.0+
 - **UI:** renders with Jetpack Compose internally — your app does **not** need Compose.
 
@@ -66,6 +66,8 @@ yourself.
 | `CAMERA` | Document capture, selfie, and liveness. | **Runtime** — the SDK requests it at the moment of first capture, and shows an in-flow rationale + "Open Settings" path if permanently denied. |
 
 Notes:
+- The SDK records **audio-less** video for liveness — it does **not** request
+  `RECORD_AUDIO`.
 - It does **not** request `READ_MEDIA_*` / storage permissions; the optional
   "upload from library" fallback uses the system photo picker.
 - `<uses-feature android:name="android.hardware.camera.any" android:required="true" />`
@@ -99,9 +101,48 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.othento:othento-core:0.1.1")
+    implementation("com.othento:othento-core:0.1.2")
 }
 ```
+
+### Core-library desugaring is required
+
+The SDK's AWS Face Liveness component requires **core-library desugaring**.
+Gradle does not inherit this setting from a library module, so you must enable
+it in your own app module:
+
+```kotlin
+// app/build.gradle.kts
+android {
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation("com.othento:othento-core:0.1.2")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+}
+```
+
+Without it the build fails with:
+
+```
+Dependency 'com.amplifyframework:core:2.29.0' requires core library desugaring
+to be enabled for :app.
+```
+
+### Versions the SDK brings onto your classpath
+
+The SDK pulls these transitively. If you pin any of them yourself, pin at or
+above these versions:
+
+| Dependency | Version | Why |
+|---|---|---|
+| OkHttp | `5.0.0-alpha.14` | Required by the AWS streaming client (it needs `okhttp-coroutines`, which has no 4.x equivalent). |
+| Compose BOM | `2025.03.01` | Carried by the AWS Face Liveness UI component. |
 
 ---
 
@@ -180,6 +221,14 @@ hits the test environment, `pk_live_…` bills real verifications. Same SDK buil
 | `expectedDetails(OthentoExpectedDetails)` | optional | Identity hints to compare against extracted data (see below). |
 | `closeOnComplete(Boolean)` | optional (default `false`) | Auto-dismiss the SDK on any terminal screen instead of leaving it up. |
 | `loggingEnabled(Boolean)` | optional (default `false`) | Verbose, auth-redacted HTTP logging in release builds for debugging. |
+| `language(String)` | optional | BCP-47 language code (`"en"`, `"ar"`, …) recorded on the session at create time and used to resolve SDK copy. Omit it and the backend applies the tenant default. |
+
+In **token mode** the session already carries a language (chosen by whoever
+minted the SAT), so `language(...)` acts only as a fallback when the session
+does not report one. Either way the backend is the authority: request a
+language the tenant does not publish and it resolves to the tenant default.
+Users can also switch language in-flow when the tenant publishes more than
+one; right-to-left languages lay the whole flow out RTL.
 
 ### `OthentoExpectedDetails`
 
@@ -336,7 +385,7 @@ production. Pre-`1.0.0` versions may be re-published on the GitHub repo.
 
 ## Support
 
-Include the SDK version (`0.1.1`), the `externalId` of the affected session, and
+Include the SDK version (`0.1.2`), the `externalId` of the affected session, and
 a logcat capture (enable `loggingEnabled(true)` while reproducing) when
 contacting your account manager or opening a ticket.
 

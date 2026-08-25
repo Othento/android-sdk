@@ -7,6 +7,66 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While on `0.x` the public API may still change between minor versions; the first
 frozen API ships as `1.0.0`.
 
+## [0.1.2] — 2026-08-25
+
+Feature release. Coordinate: `com.othento:othento-core:0.1.2`.
+
+### Action required when upgrading
+
+- **Core-library desugaring is now required in your app module.** The new AWS
+  Face Liveness component needs it, and Gradle does not inherit the setting
+  from a library module, so the build fails with
+  `Dependency 'com.amplifyframework:core:2.29.0' requires core library
+  desugaring to be enabled for :app` until you enable it. Add
+  `isCoreLibraryDesugaringEnabled = true` plus
+  `coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")` — see
+  "Core-library desugaring is required" in the README.
+- **Two transitive versions moved up**, both pulled by the liveness component:
+  OkHttp `4.12.0` → `5.0.0-alpha.14` (the AWS streaming client needs
+  `okhttp-coroutines`, which has no 4.x equivalent) and Compose BOM
+  `2024.10.01` → `2025.03.01`. If you pin either yourself, pin at or above
+  these.
+
+### Added
+- **Localization** — all in-flow copy, icons, and tenant branding now resolve
+  from the backend content bundle instead of being compiled into the SDK, with
+  a local fallback bundle when the content call fails. Users can switch
+  language mid-flow when the tenant publishes more than one, and right-to-left
+  languages lay the entire flow out RTL.
+- **`OthentoConfig.language(String)`** — BCP-47 code (`"en"`, `"ar"`, …)
+  recorded on the session at create time and used to resolve SDK copy. Omit it
+  and the backend applies the tenant default; the backend stays the authority,
+  so an unpublished language falls back rather than erroring. In token mode the
+  session already carries a language, so this acts only as a fallback.
+- **AWS Rekognition Face Liveness** — a new liveness screen selected by the
+  workflow, running the AWS Face Liveness component against backend-minted
+  credentials, with typed mapping from AWS failures onto `OthentoError`.
+- **"Update required" screen** — a workflow that asks for a step this SDK
+  version cannot render now ends on an explicit update prompt instead of an
+  opaque error.
+- **Searchable country picker** — the document-select country dropdown gained
+  inline search across localized and English names and ISO codes.
+
+### Changed
+- **AML / inference results surface much faster.** When a session is processing
+  server-side with nothing left for the user to do, polling switches to a
+  background profile: the first poll fires immediately (no leading delay), then
+  every 1 s for up to ~60 s, instead of the default 2 s cadence.
+- **Post-submit decision wait raised from ~10 s to ~16 s** (5 → 8 polls).
+  Timing out here is terminal — it routes to "Verification under review" — so
+  the shorter window was ending sessions whose decision was seconds away.
+- **Capture raised to full HD.** Document capture and liveness video moved from
+  HD to 1080p, and the front camera used for selfie / face-match was raised to
+  1080p as well, with a reworked detection pipeline, frame analyzer, and MRZ /
+  passport gating.
+
+### Fixed
+- **OTP retry stranding.** If the send-code response came back with a session
+  that had left the OTP step — a late identity-inference `Failed`, an expiry,
+  or an advance to another step — the user was left on a dead code-entry
+  screen. Those responses now route through the normal screen resolver, so the
+  flow reaches the retry, terminal, or next screen as it should.
+
 ## [0.1.1] — 2026-06-18
 
 Patch release. Coordinate: `com.othento:othento-core:0.1.1`.
