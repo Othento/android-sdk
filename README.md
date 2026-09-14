@@ -8,7 +8,7 @@ verification, and hands you a typed decision (`Approved` / `Declined` /
 `InReview`) through a listener. The API surface mirrors the web SDK 1:1, so
 error codes, session statuses, and analytics events line up across platforms.
 
-- **Coordinate:** `com.othento:othento-core:0.1.2`
+- **Coordinate:** `com.othento:othento-core:0.1.3`
 - **Min SDK:** 24 · **compile/target:** 34 · **Kotlin:** 2.0+
 - **UI:** renders with Jetpack Compose internally — your app does **not** need Compose.
 
@@ -101,7 +101,7 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.othento:othento-core:0.1.2")
+    implementation("com.othento:othento-core:0.1.3")
 }
 ```
 
@@ -122,7 +122,7 @@ android {
 }
 
 dependencies {
-    implementation("com.othento:othento-core:0.1.2")
+    implementation("com.othento:othento-core:0.1.3")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
 ```
@@ -232,20 +232,34 @@ one; right-to-left languages lay the whole flow out RTL.
 
 ### `OthentoExpectedDetails`
 
-All fields optional — send only what you already know. Used by the backend to
-cross-check against the data extracted from the document/selfie.
+All fields are optional. Send only what you already know about the user. The
+backend compares these values with the data read from the document, the selfie,
+and the user's connection. Leave out any field you don't know. Don't send an
+empty string or a placeholder, because it is compared like a real value.
+
+| Field | Type | What to send | Example |
+|---|---|---|---|
+| `firstName` | `String?` | The user's first (given) name. | `"Sara"` |
+| `lastName` | `String?` | The user's last (family) name. | `"Haddad"` |
+| `dateOfBirth` | `String?` | Date of birth. **Must be `yyyy-MM-dd`**: 4-digit year, 2-digit month, 2-digit day, zero-padded. | `"1988-01-01"` |
+| `gender` | `String?` | **`"M"` or `"F"`**, a single uppercase letter. | `"M"` |
+| `nationality` | `String?` | The user's nationality as an **ISO 3166-1 alpha-3** country code (3 uppercase letters). | `"JOR"` |
+| `country` | `String?` | The user's country as an **ISO 3166-1 alpha-3** country code (3 uppercase letters). | `"JOR"` |
+| `address` | `String?` | The user's address as free text. | `"Amman, Jordan"` |
+| `documentNumber` | `String?` | The ID document number. | `"A1234567"` |
+| `ipAddress` | `String?` | The **IPv4** address you expect the end user to connect from. | `"203.0.113.10"` |
 
 ```kotlin
 OthentoExpectedDetails(
-    firstName = null,
-    lastName = null,
-    dateOfBirth = null,   // ISO-8601, e.g. "1990-04-23"
-    gender = null,
-    nationality = null,
-    country = null,
-    address = null,
-    documentNumber = null,
-    ipAddress = null,
+    firstName = "Sara",
+    lastName = "Haddad",
+    dateOfBirth = "1988-01-01",   // must be yyyy-MM-dd
+    gender = "F",                 // "M" or "F"
+    nationality = "JOR",          // ISO 3166-1 alpha-3
+    country = "JOR",              // ISO 3166-1 alpha-3
+    address = "Amman, Jordan",
+    documentNumber = "A1234567",
+    ipAddress = "203.0.113.10",   // expected end-user IPv4
 )
 ```
 
@@ -385,7 +399,7 @@ production. Pre-`1.0.0` versions may be re-published on the GitHub repo.
 
 ## Support
 
-Include the SDK version (`0.1.2`), the `externalId` of the affected session, and
+Include the SDK version (`0.1.3`), the `externalId` of the affected session, and
 a logcat capture (enable `loggingEnabled(true)` while reproducing) when
 contacting your account manager or opening a ticket.
 

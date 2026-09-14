@@ -7,6 +7,21 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While on `0.x` the public API may still change between minor versions; the first
 frozen API ships as `1.0.0`.
 
+## [0.1.3] — 2026-09-14
+
+Patch release. Coordinate: `com.othento:othento-core:0.1.3`.
+
+### Changed
+- **Production API host moved to `https://sdk-api.othento.com`.** `pk_live_…`
+  keys now reach the new production endpoint. Nothing changes for you: there
+  is no new configuration, and sandbox keys work the same as before.
+
+### Docs
+- **`OthentoExpectedDetails` field formats documented.** The README now lists
+  what each field expects: `dateOfBirth` as `yyyy-MM-dd`, `gender` as `"M"` or
+  `"F"`, `nationality` and `country` as ISO 3166-1 alpha-3 codes, and
+  `ipAddress` as the expected end-user IPv4 address.
+
 ## [0.1.2] — 2026-08-25
 
 Feature release. Coordinate: `com.othento:othento-core:0.1.2`.
