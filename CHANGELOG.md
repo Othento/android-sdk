@@ -11,6 +11,15 @@ frozen API ships as `1.0.0`.
 
 Patch release. Coordinate: `com.othento:othento-core:0.1.3`.
 
+### Action required when upgrading
+
+- **Versions 0.1.0, 0.1.1 and 0.1.2 have been removed from this repository**
+  and can no longer be downloaded. They pointed at an API host that is no
+  longer supported. Change your dependency to
+  `com.othento:othento-core:0.1.3`. Builds that still request an older version
+  fail with `Could not find com.othento:othento-core:0.1.x`. Their entries
+  below are kept for reference only.
+
 ### Changed
 - **Production API host moved to `https://sdk-api.othento.com`.** `pk_live_…`
   keys now reach the new production endpoint. Nothing changes for you: there
