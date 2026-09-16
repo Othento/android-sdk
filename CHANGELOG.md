@@ -7,6 +7,26 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While on `0.x` the public API may still change between minor versions; the first
 frozen API ships as `1.0.0`.
 
+## [0.1.4] — 2026-09-16
+
+Patch release. Coordinate: `com.othento:othento-core:0.1.4`.
+
+### Fixed
+- **Token mode now works against production.** The SDK chose its backend from
+  the API key prefix, so token mode, which has no API key, connected to a
+  development host and every production session access token failed. The SDK
+  now always connects to `https://sdk-api.othento.com`. Sandbox vs live is
+  decided by the API key your server used to create the session. **If you use
+  sandbox keys:** they now go to the same host as live keys, which matches the
+  iOS and web SDKs.
+
+### Docs
+- **Token mode is now the documented integration.** The README explains how to
+  create a session on your server with `POST /api/v1/SessionToken/session` and
+  launch the SDK with `OthentoConfig.Builder().tokenMode(sat)`, so your API key
+  never ships inside your app. Create mode is no longer documented; it keeps
+  working for existing integrations.
+
 ## [0.1.3] — 2026-09-14
 
 Patch release. Coordinate: `com.othento:othento-core:0.1.3`.
