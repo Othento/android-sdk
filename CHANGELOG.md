@@ -7,6 +7,34 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 While on `0.x` the public API may still change between minor versions; the first
 frozen API ships as `1.0.0`.
 
+## [0.1.5] — 2026-11-05
+
+Feature release. Coordinate: `com.othento:othento-core:0.1.5`.
+
+### Added
+- **`OthentoConfig.Builder.apiBaseUrl(String)` for dedicated-cloud and
+  on-premises deployments.** Points the SDK at your deployment's SDK API
+  instead of `https://sdk-api.othento.com`. It must be an https origin (host
+  and optional port, no path); a blank or invalid value makes `build()` throw
+  `OthentoConfigException` (`config_invalid`) rather than falling back to the
+  hosted service. Omit it and nothing changes. See "Dedicated and on-premises
+  deployments" in the README.
+
+### Changed
+- **Upload error messages no longer name the internal pipeline stage.** The
+  `displayMessage` for a failed upload now ends `(HTTP 403)` instead of
+  `(S3Put HTTP 403)`. The stage is still on `OthentoError.UploadFailed.stage`.
+
+### Removed
+- The undocumented `othento.internal.baseUrl` JVM system property. Use
+  `apiBaseUrl(...)` instead.
+
+### Docs
+- Sandbox sessions always finish Approved; the README no longer promises test
+  documents for the Declined and In-review outcomes.
+- A `dateOfBirth` or `gender` in the wrong format is rejected with `400` when the
+  session is created; the README now says so.
+
 ## [0.1.4] — 2026-09-16
 
 Patch release. Coordinate: `com.othento:othento-core:0.1.4`.
@@ -57,8 +85,8 @@ Feature release. Coordinate: `com.othento:othento-core:0.1.2`.
 
 ### Action required when upgrading
 
-- **Core-library desugaring is now required in your app module.** The new AWS
-  Face Liveness component needs it, and Gradle does not inherit the setting
+- **Core-library desugaring is now required in your app module.** The new
+  active-liveness component needs it, and Gradle does not inherit the setting
   from a library module, so the build fails with
   `Dependency 'com.amplifyframework:core:2.29.0' requires core library
   desugaring to be enabled for :app` until you enable it. Add
@@ -66,7 +94,7 @@ Feature release. Coordinate: `com.othento:othento-core:0.1.2`.
   `coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")` — see
   "Core-library desugaring is required" in the README.
 - **Two transitive versions moved up**, both pulled by the liveness component:
-  OkHttp `4.12.0` → `5.0.0-alpha.14` (the AWS streaming client needs
+  OkHttp `4.12.0` → `5.0.0-alpha.14` (the liveness streaming client needs
   `okhttp-coroutines`, which has no 4.x equivalent) and Compose BOM
   `2024.10.01` → `2025.03.01`. If you pin either yourself, pin at or above
   these.
@@ -82,9 +110,9 @@ Feature release. Coordinate: `com.othento:othento-core:0.1.2`.
   and the backend applies the tenant default; the backend stays the authority,
   so an unpublished language falls back rather than erroring. In token mode the
   session already carries a language, so this acts only as a fallback.
-- **AWS Rekognition Face Liveness** — a new liveness screen selected by the
-  workflow, running the AWS Face Liveness component against backend-minted
-  credentials, with typed mapping from AWS failures onto `OthentoError`.
+- **Active liveness** — a new liveness screen selected by the workflow,
+  running a cloud liveness challenge against backend-minted credentials, with
+  typed mapping from its failures onto `OthentoError`.
 - **"Update required" screen** — a workflow that asks for a step this SDK
   version cannot render now ends on an explicit update prompt instead of an
   opaque error.

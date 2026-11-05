@@ -8,7 +8,7 @@ verification, and hands you a typed decision (`Approved` / `Declined` /
 `InReview`) through a listener. The API surface mirrors the web SDK 1:1, so
 error codes, session statuses, and analytics events line up across platforms.
 
-- **Coordinate:** `com.othento:othento-core:0.1.4`
+- **Coordinate:** `com.othento:othento-core:0.1.5`
 - **Min SDK:** 24 · **compile/target:** 34 · **Kotlin:** 2.0+
 - **UI:** renders with Jetpack Compose internally — your app does **not** need Compose.
 
@@ -23,15 +23,16 @@ error codes, session statuses, and analytics events line up across platforms.
 5. [Step 1 — Create a session on your server](#step-1--create-a-session-on-your-server)
 6. [Step 2 — Launch the SDK in your app](#step-2--launch-the-sdk-in-your-app)
 7. [Configuration reference](#configuration-reference)
-8. [Lifecycle & callbacks](#lifecycle--callbacks)
-9. [Status & decision values](#status--decision-values)
-10. [Error codes](#error-codes)
-11. [Cancellation reasons](#cancellation-reasons)
-12. [ProGuard / R8](#proguard--r8)
-13. [Testing your integration](#testing-your-integration)
-14. [Troubleshooting](#troubleshooting)
-15. [Versioning](#versioning)
-16. [Support](#support)
+8. [Dedicated and on-premises deployments](#dedicated-and-on-premises-deployments)
+9. [Lifecycle & callbacks](#lifecycle--callbacks)
+10. [Status & decision values](#status--decision-values)
+11. [Error codes](#error-codes)
+12. [Cancellation reasons](#cancellation-reasons)
+13. [ProGuard / R8](#proguard--r8)
+14. [Testing your integration](#testing-your-integration)
+15. [Troubleshooting](#troubleshooting)
+16. [Versioning](#versioning)
+17. [Support](#support)
 
 ---
 
@@ -139,13 +140,13 @@ dependencyResolutionManagement {
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-    implementation("com.othento:othento-core:0.1.4")
+    implementation("com.othento:othento-core:0.1.5")
 }
 ```
 
 ### Core-library desugaring is required
 
-The SDK's AWS Face Liveness component requires **core-library desugaring**.
+The SDK's active-liveness component requires **core-library desugaring**.
 Gradle does not inherit this setting from a library module, so you must enable
 it in your own app module:
 
@@ -160,12 +161,13 @@ android {
 }
 
 dependencies {
-    implementation("com.othento:othento-core:0.1.4")
+    implementation("com.othento:othento-core:0.1.5")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 }
 ```
 
-Without it the build fails with:
+Without it the build fails with an error naming one of the liveness
+component's dependencies:
 
 ```
 Dependency 'com.amplifyframework:core:2.29.0' requires core library desugaring
@@ -179,8 +181,8 @@ above these versions:
 
 | Dependency | Version | Why |
 |---|---|---|
-| OkHttp | `5.0.0-alpha.14` | Required by the AWS streaming client (it needs `okhttp-coroutines`, which has no 4.x equivalent). |
-| Compose BOM | `2025.03.01` | Carried by the AWS Face Liveness UI component. |
+| OkHttp | `5.0.0-alpha.14` | Required by the liveness streaming client (it needs `okhttp-coroutines`, which has no 4.x equivalent). |
+| Compose BOM | `2025.03.01` | Carried by the active-liveness UI component. |
 
 ---
 
@@ -290,6 +292,11 @@ backend compares these values with the data read from the document, the selfie,
 and the user's connection. Leave out any field you don't know. Don't send an
 empty string or a placeholder, because it is compared like a real value.
 
+Send each value in the exact format in the table below. A `dateOfBirth` or
+`gender` in any other format (for example `"01/01/1988"` or `"Male"`) is
+rejected: the create-session call fails with `400`. Any other field in the wrong
+format (for example `"Jordan"` instead of `"JOR"`) will not match.
+
 ```json
 {
   "workflowExternalId": "<YOUR_WORKFLOW_ID>",
@@ -325,7 +332,8 @@ empty string or a placeholder, because it is compared like a real value.
 There is **no environment flag** in the SDK. The API key your server uses
 decides: a sandbox key creates sandbox sessions, a live key creates billable
 production sessions. The SAT carries that environment with it, so the app code
-is identical in both.
+is identical in both. Sandbox sessions always finish **Approved**; see
+[Testing your integration](#testing-your-integration).
 
 ---
 
@@ -396,11 +404,45 @@ only one SDK instance may run at a time.
 | `tokenMode(String)` | ✅ | The `sessionToken` your server received in [Step 1](#step-1--create-a-session-on-your-server). |
 | `closeOnComplete(Boolean)` | optional (default `false`) | Auto-dismiss the SDK on any terminal screen instead of leaving it up. |
 | `loggingEnabled(Boolean)` | optional (default `false`) | Verbose, auth-redacted HTTP logging in release builds for debugging. |
+| `apiBaseUrl(String)` | optional (default `https://sdk-api.othento.com`) | Dedicated-cloud and on-premises deployments only. See [Dedicated and on-premises deployments](#dedicated-and-on-premises-deployments). |
 
 Everything about the session itself — workflow, user, language, callback URL,
 metadata, expected details — is set **on your server** when you create it. See
 [Request body](#request-body). Users can still switch language in-flow when the
 tenant publishes more than one.
+
+---
+
+## Dedicated and on-premises deployments
+
+If you use Othento's hosted service, skip this section: the SDK already points
+at it.
+
+With a dedicated-cloud or on-premises deployment, the SDK API runs on a host
+your deployment provides. Pass that origin, as Othento gave it to you, to
+`apiBaseUrl`:
+
+```kotlin
+val config =
+    OthentoConfig.Builder()
+        .tokenMode(sat)
+        .apiBaseUrl(BuildConfig.OTHENTO_API_BASE_URL) // e.g. "https://kyc-api.your-bank.example"
+        .build()
+```
+
+- **It is the SDK API host**, the same host your server creates sessions
+  against in [Step 1](#step-1--create-a-session-on-your-server) (instead of
+  `sdk-api.othento.com`).
+- **An https origin only:** `https://`, a host name or IPv4 address, and an
+  optional port, such as `https://kyc-api.your-bank.example:8443`. A path,
+  query, fragment, credentials, an IPv6 literal, `http://`, or a blank string
+  makes `build()` throw `OthentoConfigException` (`config_invalid`). Write
+  international domain names in their `xn--` form.
+- **It never falls back.** A blank or invalid value throws; the SDK does not
+  quietly switch to Othento's hosted service. Once set, the SDK sends the
+  session's access tokens only to that host.
+- **Set it from your app's own build or configuration**, never from user input
+  or a deep link.
 
 ---
 
@@ -457,7 +499,7 @@ on the subtype (or `code`) for exhaustive handling.
 | `network` | Connectivity / DNS / TLS failure. | Retry. |
 | `documents_failed` | Document list/processing failed. | Prompt retry with better lighting. |
 | `initiate_failed` | Flow failed to start. | Retry on a fresh instance. |
-| `upload_failed` | Evidence upload failed; `error.stage` says which step (`UploadUrl` / `S3Put` / `ConfirmUpload`). | Retry; check connectivity. |
+| `upload_failed` | Evidence upload failed; `error.stage` says which step: `UploadUrl` (requesting the upload URL), `S3Put` (uploading the file itself) or `ConfirmUpload` (confirming the upload). | Retry; check connectivity. |
 | `poll_failed` | Polling for the result failed. | Retry; the session may still resolve. |
 | `file_too_large` | Picked file exceeded the upload limit (>10 MB). | Prompt the user to retry capture. |
 | `unknown` | Unclassified runtime error. | Show `displayMessage`; capture logs + `externalId` for support. |
@@ -507,15 +549,17 @@ A healthy integration produces, in order:
 5. Your webhook endpoint receives the final session event for the same
    `externalId`.
 
-Use the sandbox test documents from your dashboard to exercise approved /
-declined / in-review paths deterministically.
+Sandbox sessions always finish **Approved**, so use them to prove the
+integration end to end. Declined and In-review outcomes can't be produced in
+sandbox: cover that handling with your own tests (call your `onCompleted`
+handling with `Declined` and `InReview` directly) and confirm it once in
+production.
 
 - [ ] Server creates sessions with the **sandbox** API key; no API key anywhere in the app module
 - [ ] `clientData` comes from the logged-in user on the server, not from the app's request body
 - [ ] The flow launches and `onReady` fires
-- [ ] Approved-path document → `onCompleted(Approved)`
-- [ ] Declined-path document → `onCompleted(Declined)`
-- [ ] In-review document → `onCompleted(InReview)`
+- [ ] A completed sandbox session → `onCompleted(Approved)`
+- [ ] Your `Declined` and `InReview` handling is covered by your own tests
 - [ ] Back out mid-flow → `onCancelled(BackButton)`
 - [ ] An expired SAT → `onError`, handled by fetching a new one
 
@@ -528,7 +572,7 @@ declined / in-review paths deterministically.
 | Build error: cannot resolve `com.github.pqpo:SmartCropper` | `jitpack.io` not in repositories. | Add `maven { url = uri("https://jitpack.io") }`. |
 | Build error: cannot resolve `com.othento:othento-core` | Othento Maven repo missing or wrong branch. | Add `https://raw.githubusercontent.com/Othento/android-sdk/main`. |
 | Your server gets `401` from `/SessionToken/session` | Missing or wrong `X-API-KEY`, or a key from a different application. | Check the key your server sends and the application it belongs to. |
-| `build()` throws `OthentoConfigException` | `sat` is empty — usually the server response was read with the wrong field name. | Return `session.sessionToken` from your server and pass it to `tokenMode(...)`. |
+| `build()` throws `OthentoConfigException` | `sat` is empty — usually the server response was read with the wrong field name. Or, on a dedicated/on-premises deployment, `apiBaseUrl` is blank or not a bare https origin. | Return `session.sessionToken` from your server and pass it to `tokenMode(...)`. Check `apiBaseUrl` against [the rules](#dedicated-and-on-premises-deployments). |
 | `onError(session_not_found)` right after launch | The SAT was altered (trimmed, re-encoded) or has expired. | Pass the token exactly as received; create the session when the user taps "Verify", not at app start. |
 | Camera screen never appears | Camera permission permanently denied. | The SDK shows an "Open Settings" path; the user must grant it. |
 | Release build crashes during JSON parse | Aggressive R8 in a non-standard setup stripping DTOs. | The shipped consumer rules cover this; file an issue if you've customized R8. |
@@ -545,7 +589,7 @@ production. Pre-`1.0.0` versions may be re-published on the GitHub repo.
 
 ## Support
 
-Include the SDK version (`0.1.4`), the `externalId` of the affected session, and
+Include the SDK version (`0.1.5`), the `externalId` of the affected session, and
 a logcat capture (enable `loggingEnabled(true)` while reproducing) when
 contacting your account manager or opening a ticket.
 
